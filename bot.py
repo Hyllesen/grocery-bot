@@ -46,6 +46,42 @@ def _format_list(items: list) -> str:
     return "\n".join(lines) if lines else "No items in the list yet."
 
 
+# ── Help command ───────────────────────────────────────────────────────────
+
+COMMANDS_HELP = (
+    "Available commands:\n"
+    "  /add item        — add an item\n"
+    "  /list            — show current items\n"
+    "  /shoppinglist    — get list & clear\n"
+    "  /delete item     — remove an item\n"
+    "  /clear           — clear the entire list\n"
+    "  /help            — show this message"
+)
+
+
+KNOWN_COMMANDS = {"start", "help", "add", "list", "shoppinglist", "delete", "clear"}
+
+
+@bot.message_handler(commands=["commands"])
+def cmd_commands(message):
+    if not _check_auth(message):
+        return
+    bot.reply_to(message, COMMANDS_HELP, parse_mode="Markdown")
+
+
+@bot.message_handler(func=lambda m: m.text.startswith("/"), content_types=["text"])
+def cmd_unknown(message):
+    if not _check_auth(message):
+        return
+    parts = message.text.split(maxsplit=1)
+    command = parts[0].lower().lstrip("/") if parts else ""
+    if command not in KNOWN_COMMANDS:
+        bot.reply_to(message, COMMANDS_HELP, parse_mode="Markdown")
+    else:
+        # Known command but missing argument — let the specific handler deal with it
+        pass
+
+
 # ── Commands ───────────────────────────────────────────────────────────────
 
 @bot.message_handler(commands=["start", "help"])
@@ -55,13 +91,7 @@ def cmd_start(message):
     bot.reply_to(
         message,
         "🛒 *Shopping bot ready!*\n\n"
-        "Just type an item and I'll add it automatically.\n\n"
-        "Commands:\n"
-        "  /add item        — add an item\n"
-        "  /list            — show current items\n"
-        "  /shoppinglist    — get list & clear\n"
-        "  /delete item     — remove an item\n"
-        "  /help            — show this message",
+        "Just type an item and I'll add it automatically.\n\n" + COMMANDS_HELP,
         parse_mode="Markdown",
     )
 
@@ -104,6 +134,17 @@ def cmd_shoppinglist(message):
     bot.send_message(message.chat.id, "✅ List cleared — enjoy the shopping!")
 
 
+@bot.message_handler(commands=["clear"])
+def cmd_clear(message):
+    if not _check_auth(message):
+        return
+    deleted = db.delete_all_items()
+    if deleted > 0:
+        bot.reply_to(message, f"✅ Cleared *{deleted}* items from the list.", parse_mode="Markdown")
+    else:
+        bot.reply_to(message, "📭 The list is already empty.")
+
+
 @bot.message_handler(commands=["delete"])
 def cmd_delete(message):
     if not _check_auth(message):
@@ -112,12 +153,17 @@ def cmd_delete(message):
     if len(args) < 2 or not args[1].strip():
         bot.reply_to(message, "Usage: /delete <item>")
         return
-    item_name = args[1].strip().lower()
-    deleted = db.delete_item(item_name)
-    if deleted:
+    item_prefix = args[1].strip().lower()
+    matches = db.search_items_by_prefix(item_prefix)
+    if not matches:
+        bot.reply_to(message, f"No items in the list starting with '{item_prefix}'.")
+    elif len(matches) == 1:
+        item_name = matches[0]["item_name"]
+        db.delete_item(item_name)
         bot.reply_to(message, f"Deleted *{item_name}* ✓", parse_mode="Markdown")
     else:
-        bot.reply_to(message, f"'{item_name}' not found in the list.")
+        names = ", ".join(row["item_name"] for row in matches)
+        bot.reply_to(message, f"Did you mean {names} to be deleted?")
 
 
 # ── Plain text handler (implicit /add) ─────────────────────────────────────

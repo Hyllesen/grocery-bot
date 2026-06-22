@@ -61,6 +61,16 @@ def delete_item(item_name: str) -> int:
     return deleted
 
 
+def search_items_by_prefix(prefix: str) -> list[sqlite3.Row]:
+    conn = _get_connection()
+    rows = conn.execute(
+        "SELECT * FROM items WHERE item_name LIKE ?",
+        (prefix + "%",),
+    ).fetchall()
+    conn.close()
+    return rows
+
+
 def delete_all_items() -> int:
     conn = _get_connection()
     cur = conn.execute("DELETE FROM items")

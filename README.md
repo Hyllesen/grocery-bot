@@ -1,6 +1,6 @@
 # 🛒 Shopping Bot
 
-A Telegram bot for couples — just type items in a group chat and get a categorized shopping list when you're ready to go.
+A Telegram bot for couples — just type items in a group chat and get a shopping list when you're ready to go.
 
 ## Quick Start
 
@@ -29,21 +29,19 @@ docker compose up
 | Command | Description |
 |---------|-------------|
 | `/start` | Welcome message with help |
-| `/add <item>` | Add an item (auto-categorized) |
-| `/add <item> <category>` | Add with a specific category |
+| `/add <item>` | Add an item |
 | `/list` | Show current items |
 | `/shoppinglist` | Get the full list, then clear it |
-| `/delete <item>` | Remove an item |
-| `/move <item> <category>` | Change an item's category |
+| `/delete <item>` | Remove an item (prefix matching) |
+| `/clear` | Clear the entire list |
+
 | `/help` | Show commands |
 
 ## Plain Text
 
-Just type an item name — it gets added automatically with auto-categorization.
+Just type an item name — it gets added automatically.
 
-## Categories
 
-Produce 🥬 · Dairy 🧀 · Meat 🥩 · Bakery 🍞 · Pantry 🥫 · Drinks 🥤 · Bathroom 🚿 · Household 🧹 · Snacks 🍿 · Other 📦
 
 ## Deploying to a VPS
 

@@ -1,45 +1,31 @@
 # TODO
 
 ## Goal
-Build a Dockerized Python Telegram bot that lets a couple chat grocery items into a shared shopping list, auto-categorized, with a command to retrieve and clear the list.
+Enhance the shopping bot with fuzzy prefix matching on `/delete`, remove category functionality entirely, add `/clear` command, and add help fallback for unknown commands.
 
 ## Tasks
 
-### 1. Project Setup
-- [x] Initialize Python project (virtual env, `pyproject.toml`, `requirements.txt`)
-- [x] Install `python-telebot` (or `aiogram`) as the Telegram bot framework
-- [x] Set up `Dockerfile` and `docker-compose.yml` for containerized deployment
-- [x] Create `.env` template and `.gitignore`
+### 1. Remove category functionality
+- [x] Remove `categories.py` — the file is no longer needed
+- [x] Update `database.py` — remove the `category` column from the `items` table schema
+- [x] Update `database.py` — remove `move_item` function (no longer needed)
+- [x] Update `bot.py` — remove the `/move` command handler
+- [x] Update `bot.py` — remove all category references from the `/add` confirmation messages (e.g., "Added 'chicken' to 🥩 Meat ✓")
 
-### 2. Data Layer
-- [x] Set up SQLite database with a single `items` table (id, item_name, category, created_at)
-- [x] Write a `database.py` module with `add_item`, `get_items`, `delete_items`, `move_item` functions
+### 2. Implement fuzzy prefix matching on `/delete`
+- [x] Update `database.py` — add a `search_items_by_prefix(prefix)` function that queries `SELECT * FROM items WHERE item_name LIKE ?` with `prefix + '%'`
+- [x] Update `bot.py` — rewrite `cmd_delete` to use prefix matching: if 1 match, delete it; if 2+ matches, reply with suggestions ("Did you mean X, Y, or Z to be deleted?"); if 0 matches, reply with "not found"
 
-### 3. Category Mapping
-- [x] Create a keyword-to-category mapping dictionary in `categories.py` with ~10 predefined categories and ~30-50 common grocery/household keyword mappings
-- [x] Write `guess_category(item_name)` function that returns the best category match or "Other"
+### 3. Add `/clear` command
+- [x] Update `bot.py` — add `cmd_clear` handler that calls `db.delete_all_items()` and confirms the list is empty
 
-### 4. Bot Commands
-- [x] Implement `/start` — welcome message with usage instructions
-- [x] Implement `/add <item>` or `/add <item> <category>` to add items
-- [x] Implement `/list` to show all current items grouped by category
-- [x] Implement `/shoppinglist` to output the full list grouped by category, then clear all items
-- [x] Implement `/delete <item>` to remove a specific item
-- [x] Implement `/move <item> <category>` to recategorize an item
-
-### 5. Message Handling (No Command)
-- [x] Handle plain text messages as implicit `/add` — auto-categorize and confirm with the user (e.g., "Added 'toothpaste' to 🚿 Bathroom ✓")
-
-### 6. Docker & Deployment
-- [x] Test locally with Docker (`docker compose up`)
-- [x] Ensure `.env` with `BOT_TOKEN` and `ADMIN_CHAT_ID` is handled (restrict bot to specific group chat)
-- [x] Add `docker-compose.yml` with volume mount for SQLite persistence
-
-### 7. README
-- [x] Write `README.md` with setup instructions, commands reference, and deployment steps
+### 4. Handle unknown commands
+- [x] Update `bot.py` — add a `/commands` handler (or reuse existing `/help`) that lists all available commands
+- [x] Update `bot.py` — add a generic message handler that intercepts messages starting with `/` that don't match any known command, and replies with the available commands list
+- [x] Update `README.md` — remove `/move` and `/add <item> <category>` entries, update description to remove "categorized"
 
 ## Notes
-- Bot framework: `python-telebot` (synchronous, simple for this use case)
-- Database: SQLite (lightweight, single file, works well in Docker with volume mount)
-- Authorization: Restrict to a specific chat ID (the group chat with the bot)
-- Categories: Produce, Dairy, Meat, Bakery, Pantry, Drinks, Bathroom, Household, Snacks, Other
+- The `items` table schema change (removing `category`) will require a migration for existing databases. Since this is a small app, we can either:
+  - Drop the column and let SQLite handle it (ALTER TABLE DROP COLUMN), or
+  - Add a migration flag so users can run it once
+- The `/delete` fuzzy matching should be case-insensitive (item names are stored lowercase already)
