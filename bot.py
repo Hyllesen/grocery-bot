@@ -62,26 +62,6 @@ COMMANDS_HELP = (
 KNOWN_COMMANDS = {"start", "help", "add", "list", "shoppinglist", "delete", "clear"}
 
 
-@bot.message_handler(commands=["commands"])
-def cmd_commands(message):
-    if not _check_auth(message):
-        return
-    bot.reply_to(message, COMMANDS_HELP, parse_mode="Markdown")
-
-
-@bot.message_handler(func=lambda m: m.text.startswith("/"), content_types=["text"])
-def cmd_unknown(message):
-    if not _check_auth(message):
-        return
-    parts = message.text.split(maxsplit=1)
-    command = parts[0].lower().lstrip("/") if parts else ""
-    if command not in KNOWN_COMMANDS:
-        bot.reply_to(message, COMMANDS_HELP, parse_mode="Markdown")
-    else:
-        # Known command but missing argument — let the specific handler deal with it
-        pass
-
-
 # ── Commands ───────────────────────────────────────────────────────────────
 
 @bot.message_handler(commands=["start", "help"])
@@ -164,6 +144,25 @@ def cmd_delete(message):
     else:
         names = ", ".join(row["item_name"] for row in matches)
         bot.reply_to(message, f"Did you mean {names} to be deleted?")
+
+
+@bot.message_handler(commands=["commands"])
+def cmd_commands(message):
+    if not _check_auth(message):
+        return
+    bot.reply_to(message, COMMANDS_HELP, parse_mode="Markdown")
+
+
+@bot.message_handler(func=lambda m: m.text.startswith("/"), content_types=["text"])
+def cmd_unknown(message):
+    if not _check_auth(message):
+        return
+    parts = message.text.split(maxsplit=1)
+    command = parts[0].lower().lstrip("/") if parts else ""
+    if command not in KNOWN_COMMANDS:
+        bot.reply_to(message, COMMANDS_HELP, parse_mode="Markdown")
+    else:
+        pass
 
 
 # ── Plain text handler (implicit /add) ─────────────────────────────────────
